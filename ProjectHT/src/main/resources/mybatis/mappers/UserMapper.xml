@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 表示唯一性,使用接口的形式查询数据库,以接口的路径名来命名 -->
+<mapper namespace="cn.tarena.ht.mapper.UserMapper">
+	
+	<sql id="userSql">
+		select * from (select * from user_p u left join (select ui.user_info_id,ui.name,ui.card_no,ui.join_date,ui.salary,ui.birthday,ui.gender,ui.station,ui.telephone,ui.user_level,ui.remark,ui.order_no,mui.user_info_id m_id,mui.name m_name from user_info_p ui 
+		left join 
+		user_info_p mui on ui.manager_id=mui.user_info_id) ui on ui.user_info_id =u.user_id) u left join (select dept_id d_id,dept_name d_name from dept_p) d on u.dept_id=d.d_id
+	</sql>
+	
+	<resultMap type="User" id="userRM" autoMapping="true">
+		<id column="user_id" property="userId"/>
+		<association property="dept" javaType="Dept">
+			<id column="d_id" property="deptId"/>
+			<result column="d_name" property="deptName"/>
+		</association>
+		<association property="userInfo" javaType="UserInfo">
+			<id column="user_info_id" property="userInfoId"/>
+			<result column="name" property="name"/>
+			<result column="card_no" property="cardNo"/>
+			<result column="join_date" property="joinDate"/>
+			<result column="salary" property="salary"/>
+			<result column="birthday" property="birthday"/>
+			<result column="gender" property="gender"/>
+			<result column="station" property="station"/>
+			<result column="telephone" property="telephone"/>
+			<result column="remark" property="remark"/>
+			<result column="user_level" property="userLevel"/>
+			<result column="order_no" property="orderNo"/>
+			<association property="manager" javaType="UserInfo">
+				<id column="m_id" property="userInfoId"/>
+				<result column="m_name" property="name"/>
+			</association>
+		</association>
+	</resultMap>
+	<select id="findAll" resultMap="userRM">
+		
+		<include refid="userSql"/>
+	</select>
+		<!-- select ui.user_info_id,ui.name,ui.card_no,ui.join_date,ui.salary,ui.birthday,ui.gender,ui.station,ui.telephone,ui.user_level,ui.remark,ui.order_no,mui.user_info_id m_id,mui.name m_name from user_info_p ui 
+		left join 
+		user_info_p mui on ui.manager_id=mui.user_info_id
+		select * from user_p u left join user_info_p ui on ui.user_info_id =u.user_id;
+		select * from user u left join (select dept_id d_id,dept_name d_name from dept_p) d on u.dept_id=d.d_id; -->
+	
+	<update id="changeState">
+		update user_p set state=#{state} where user_id in
+		<foreach collection="userIds" item="userId" open="(" close=")" separator=",">
+			#{userId}
+		</foreach>
+	</update>	
+	
+	<delete id="delete">
+		delete from user_p where user_id in
+		<foreach collection="array" item="userId" open="(" close=")" separator=",">
+			#{userId}
+		</foreach>
+	</delete>
+	
+	<insert id="save">
+		insert into user_p (user_id,dept_id,username,password,state,create_time) 
+		values (#{userId},#{dept.deptId},#{username},#{password},#{state},#{createTime})
+	</insert>
+	
+	<select id="findOne" resultMap="userRM">
+		<include refid="userSql"/>
+		where u.user_id=#{userId}
+	</select>
+	
+	<update id="update">
+		update user_p set 
+		dept_id=#{dept.deptId},username=#{username},password=#{password},state=#{state} 
+		where user_id=#{userId}
+	</update>
+	
+	<insert id="saveUserAndRole">
+		<!-- delete from role_user_p where user_id=#{userId} -->
+	<!-- 为了防止数据重复提交，需要在保存之前删除所有的该用户相关的关系数据 -->
+		insert into role_user_p (role_id,user_id) values 
+		<foreach collection="roleIds" item="roleId" separator=",">
+			(#{roleId},#{userId})
+		</foreach>
+	</insert>
+	
+	<update id="deleteDept">
+		update user_p set dept_id="" where dept_id in
+		<foreach collection="array" item="deptId" open="(" close=")" separator=",">
+			#{deptId}
+		</foreach>
+	</update>
+	
+	<select id="login" resultMap="userRM">
+		<include refid="userSql"/>
+		where username=#{username} and password=#{password}
+	</select>
+	
+	<select id="findByUsername" resultMap="userRM">
+		<include refid="userSql"/>
+		where username=#{username}
+	</select>
+	
+	<select id="findModuleById" resultType="String">
+		select name from module_p where module_id 
+		in (select module_id from role_module_p where role_id 
+		in (select role_id from user_role_p where user_id=#{userId}	))
+	</select>
+		<!-- select name from module_p where module_id in()
+		select module_id from role_module_p where role_id in ()
+		select role_id from user_role_p where user_id=#{userId}	 -->
+</mapper>

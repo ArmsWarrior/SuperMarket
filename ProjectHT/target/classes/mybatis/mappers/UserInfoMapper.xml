@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 表示唯一性,使用接口的形式查询数据库,以接口的路径名来命名 -->
+<mapper namespace="cn.tarena.ht.mapper.UserInfoMapper">
+	
+	<delete id="delete">
+		delete from user_info_p where user_info_id in
+		<foreach collection="array" item="userId" open="(" close=")" separator=",">
+			#{userId}
+		</foreach>
+	</delete>
+	
+	<select id="findAll" resultType="UserInfo">
+		select * from user_info_p
+	</select>
+	
+	<insert id="save">
+		insert into user_info_p (user_info_id,name,card_no,manager_id,join_date,salary,birthday,gender,station,telephone,user_level,remark )
+		values (#{userInfoId},#{name},#{cardNo},#{manager.userInfoId},#{joinDate},#{salary},#{birthday},#{gender},#{station},#{telephone},#{userLevel},#{remark})
+	</insert>
+	
+	<update id="update">
+		update user_info_p set name=#{name},card_no=#{cardNo},manager_id=#{manager.userInfoId},join_date=#{joinDate},salary=#{salary},birthday=#{birthday},gender=#{gender},station=#{station},telephone=#{telephone},user_level=#{userLevel},remark=#{remark}
+		where user_info_id=#{userInfoId}
+	</update>
+</mapper>
